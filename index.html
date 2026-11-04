@@ -18,12 +18,12 @@
     font-size: 1rem;
   }
   img { display: block; }
-  .page { position: relative; width: 39rem; margin: 0 auto; background: #fff; overflow: hidden; }
+  .page { position: relative; width: 39rem; height: 84.4rem; margin: 0 auto; background: #fff; overflow: hidden; }
 
   .top { position: relative; z-index: 2; height: 5.5rem; background: #ede5dd; }
   .top__icon { position: absolute; left: 2.7rem; top: 1.7rem; width: 2.9rem; height: 2.5rem; padding: .125rem 0; }
   .top__icon img { width: 100%; height: 100%; }
-  .top h1 { position: absolute; left: 6.929rem; top: 1.8rem; font-size: 2rem; font-weight: 700; line-height: 2.2rem; white-space: nowrap; }
+  .top h1 { position: absolute; left: 6.929rem; top: 1.85rem; font-size: 2rem; font-weight: 700; line-height: 2.2rem; white-space: nowrap; }
   .mascot { position: absolute; overflow: hidden; height: 4.285rem; }
   .mascot img { position: absolute; top: -.94%; height: 100.94%; max-width: none; }
   .mascot--a { left: 28.68rem; top: 1.574rem; width: 4.37rem; }
@@ -46,15 +46,32 @@
   .line { display: block; text-align: justify; text-align-last: justify; white-space: nowrap; }
   .line:last-child { text-align-last: left; }
 
+  /* 바텀시트: 접힘 44.505rem, 펼침은 영상 바로 아래(27.382rem)까지 17.123rem 상승 */
   .partners {
-    position: relative;
-    height: 38rem;
+    --lift: 17.123rem;
+    position: absolute; left: 0; right: 0; top: 44.505rem; z-index: 1;
+    height: calc(39.895rem + var(--lift));
     border-radius: 1.8rem 1.8rem 0 0;
-    background: linear-gradient(to bottom, #ede5dd, #fff);
+    background: #fff linear-gradient(to bottom, #ede5dd, #fff) top / 100% 39.895rem no-repeat;
+    transition: transform .32s cubic-bezier(.22, .8, .3, 1);
   }
-  .partners h2 { position: absolute; left: 0; right: 0; top: 1.8rem; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.7rem; }
+  .partners.is-open { transform: translateY(calc(-1 * var(--lift))); }
+  .partners.is-dragging { transition: none; }
+  .sheet-head {
+    position: absolute; left: 0; right: 0; top: 0; height: 6.995rem;
+    border-radius: 1.8rem 1.8rem 0 0;
+    touch-action: none; cursor: grab;
+    user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .partners.is-dragging .sheet-head { cursor: grabbing; }
+  .sheet-head:focus-visible { outline: .2rem solid #635b4c; outline-offset: -.2rem; }
+  .sheet-head:focus { outline-offset: -.2rem; }
+  .sheet-handle { position: absolute; left: 17.116rem; top: 1.105rem; width: 4.221rem; height: .21rem; border-radius: .4rem; background: rgba(99, 91, 76, .5); }
+  .partners h2 { position: absolute; left: 0; right: 0; top: 3.695rem; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.7rem; }
+  @media (prefers-reduced-motion: reduce) { .partners { transition: none; } }
   .track {
-    position: absolute; left: 0; right: 0; top: 5.1rem;
+    position: absolute; left: 0; right: 0; top: 6.995rem;
     display: flex; gap: 1.5rem;
     padding: 0 5.2rem 0 5.3rem;
     overflow-x: auto;
@@ -120,7 +137,10 @@
   </section>
 
   <section class="partners">
-    <h2>참여기업</h2>
+    <div class="sheet-head" role="button" tabindex="0" aria-expanded="false" aria-label="참여기업 영역 펼치기 또는 접기">
+      <span class="sheet-handle"></span>
+      <h2>참여기업</h2>
+    </div>
     <div class="track" tabindex="0" role="region" aria-label="참여기업 목록, 좌우로 넘겨 보기">
     <article class="card is-active">
       <h3 class="card__name">솔리데오</h3>
@@ -215,6 +235,61 @@
     jumpTo(lastIndex);
   });
   jumpTo(count);
+
+  // 참여기업 바텀시트: 윗부분을 끌어 올리고 내림
+  const sheet = document.querySelector('.partners');
+  const head = sheet.querySelector('.sheet-head');
+  const liftPx = () => 17.123 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  let drag = null;
+
+  const setOpen = (open) => {
+    sheet.classList.remove('is-dragging');
+    sheet.style.transform = '';
+    sheet.classList.toggle('is-open', open);
+    head.setAttribute('aria-expanded', String(open));
+    if (open && scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  head.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const open = sheet.classList.contains('is-open');
+    drag = { id: e.pointerId, startY: e.clientY, base: open ? -liftPx() : 0, open, y: e.clientY, t: e.timeStamp, v: 0, moved: false };
+    head.setPointerCapture(e.pointerId);
+  });
+
+  head.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = e.clientY - drag.startY;
+    if (!drag.moved && Math.abs(dy) < 6) return;
+    drag.moved = true;
+    sheet.classList.add('is-dragging');
+    const dt = e.timeStamp - drag.t;
+    if (dt > 0) drag.v = (e.clientY - drag.y) / dt;
+    drag.y = e.clientY;
+    drag.t = e.timeStamp;
+    const offset = Math.max(-liftPx(), Math.min(0, drag.base + dy));
+    sheet.style.transform = `translateY(${offset}px)`;
+  });
+
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const { moved, open, base, startY, v } = drag;
+    drag = null;
+    if (e.type === 'pointercancel') return setOpen(open);
+    if (!moved) return setOpen(!open);
+    const offset = base + (e.clientY - startY);
+    const projected = offset + v * 140; // 빠르게 튕기면 짧게 끌어도 넘어가도록
+    setOpen(projected < -liftPx() / 2);
+  };
+  head.addEventListener('pointerup', endDrag);
+  head.addEventListener('pointercancel', endDrag);
+
+  head.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setOpen(!sheet.classList.contains('is-open'));
+    }
+  });
 </script>
 </body>
 </html>
