@@ -53,11 +53,26 @@
     background: linear-gradient(to bottom, #ede5dd, #fff);
   }
   .partners h2 { position: absolute; left: 0; right: 0; top: 1.8rem; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.7rem; }
-  .card { position: absolute; top: 5.1rem; width: 28.5rem; height: 30.8rem; border-radius: 1.8rem; }
-  .card--peek { background: rgba(255, 255, 255, .5); }
-  .card--prev { left: -24.7rem; }
-  .card--next { left: 35.3rem; }
-  .card--main { left: 5.3rem; background: rgba(255, 255, 255, .9); color: #000; }
+  .track {
+    position: absolute; left: 0; right: 0; top: 5.1rem;
+    display: flex; gap: 1.5rem;
+    padding: 0 5.2rem 0 5.3rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 5.3rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .track::-webkit-scrollbar { display: none; }
+  .track:focus-visible { outline: .2rem solid #635b4c; outline-offset: -.2rem; }
+  .card {
+    position: relative; flex: 0 0 28.5rem; height: 30.8rem;
+    border-radius: 1.8rem; color: #000;
+    background: rgba(255, 255, 255, .5);
+    scroll-snap-align: start; scroll-snap-stop: always;
+    transition: background-color .2s;
+  }
+  .card.is-active { background: rgba(255, 255, 255, .9); }
   .card__name { position: absolute; left: 3.5rem; top: 3.5rem; font-size: 2rem; font-weight: 700; line-height: 2.3rem; white-space: nowrap; }
   .card__en { position: absolute; left: 3.5rem; top: 6.2rem; font-size: 1.5rem; font-weight: 300; line-height: 1.7rem; }
   .card__logo { position: absolute; left: 11.8rem; top: 2.4rem; width: 13.2rem; height: 6rem; }
@@ -105,15 +120,15 @@
 
   <section class="partners">
     <h2>참여기업</h2>
-    <div class="card card--peek card--prev" aria-hidden="true"></div>
-    <article class="card card--main">
+    <div class="track" tabindex="0" role="region" aria-label="참여기업 목록, 좌우로 넘겨 보기">
+    <article class="card is-active">
       <h3 class="card__name">솔리데오</h3>
       <p class="card__en">SOLIDEO</p>
       <img class="card__logo" src="assets/logo-solideo.png" alt="솔리데오 로고">
       <div class="card__body card__body--ko">
         <span class="line">솔리데오는 행정서비스와 공공기관 행정시스템을</span>
         <span class="line">구축・연계・운영하는 디지털정부 전문기업입니다.</span>
-        <span class="line">정부24・전자증면서부터 행정정보 공동이용・공공</span>
+        <span class="line">정부24・전자증명서부터 행정정보 공동이용・공공</span>
         <span class="line">마이데이터까지, 디지털 행정의 기반을 만들어갑니다.</span>
       </div>
       <div class="card__body card__body--en">
@@ -121,7 +136,10 @@
         <p>From Government24 and e-Certificates to data sharing and Public MyData, it builds the foundation of digital administration.</p>
       </div>
     </article>
-    <div class="card card--peek card--next" aria-hidden="true"></div>
+    <article class="card" aria-hidden="true"></article>
+    <article class="card" aria-hidden="true"></article>
+    <article class="card" aria-hidden="true"></article>
+    </div>
   </section>
 </main>
 <script>
@@ -137,6 +155,16 @@
     playBtn.hidden = false;
     video.currentTime = 0;
   });
+
+  const track = document.querySelector('.track');
+  const cards = [...track.querySelectorAll('.card')];
+  const markActive = () => {
+    const step = cards[1].offsetLeft - cards[0].offsetLeft;
+    const active = Math.min(cards.length - 1, Math.round(track.scrollLeft / step));
+    cards.forEach((card, i) => card.classList.toggle('is-active', i === active));
+  };
+  track.addEventListener('scroll', markActive, { passive: true });
+  addEventListener('resize', markActive);
 </script>
 </body>
 </html>
