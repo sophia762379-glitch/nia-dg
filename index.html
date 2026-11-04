@@ -33,7 +33,11 @@
 
   .hero { position: relative; height: 21.882rem; }
   .hero__img { width: 100%; height: 100%; object-fit: cover; }
-  .hero__play { position: absolute; left: 15.903rem; top: 7.5rem; width: 7.194rem; height: 7.194rem; }
+  .hero__play { position: absolute; left: 15.903rem; top: 7.5rem; width: 7.194rem; height: 7.194rem; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .hero__play img { width: 100%; height: 100%; }
+  .hero__play:focus-visible { outline: .2rem solid #fff; outline-offset: .2rem; border-radius: 50%; }
+  .hero__video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; object-fit: contain; }
+  [hidden] { display: none !important; }
 
   .intro { height: 19.018rem; padding: 3.397rem 0 0 5.3rem; }
   .intro h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.7rem; }
@@ -83,7 +87,8 @@
 
   <section class="hero">
     <img class="hero__img" src="assets/hero.png" alt="디지털정부 서비스 영상 표지. 다람쥐와 부엉이 캐릭터가 서 있다.">
-    <img class="hero__play" src="assets/play.svg" alt="">
+    <button class="hero__play" type="button" aria-label="영상 재생"><img src="assets/play.svg" alt=""></button>
+    <video class="hero__video" src="assets/video.mp4" controls playsinline preload="none" hidden></video>
   </section>
 
   <section class="intro">
@@ -119,5 +124,19 @@
     <div class="card card--peek card--next" aria-hidden="true"></div>
   </section>
 </main>
+<script>
+  const playBtn = document.querySelector('.hero__play');
+  const video = document.querySelector('.hero__video');
+  playBtn.addEventListener('click', () => {
+    playBtn.hidden = true;
+    video.hidden = false;
+    video.play();
+  });
+  video.addEventListener('ended', () => {
+    video.hidden = true;
+    playBtn.hidden = false;
+    video.currentTime = 0;
+  });
+</script>
 </body>
 </html>
