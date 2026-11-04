@@ -73,6 +73,7 @@
     transition: background-color .2s;
   }
   .card.is-active { background: rgba(255, 255, 255, .9); }
+  .track.no-anim .card { transition: none; }
   .card__name { position: absolute; left: 3.5rem; top: 3.5rem; font-size: 2rem; font-weight: 700; line-height: 2.3rem; white-space: nowrap; }
   .card__en { position: absolute; left: 3.5rem; top: 6.2rem; font-size: 1.5rem; font-weight: 300; line-height: 1.7rem; }
   .card__logo { position: absolute; left: 11.8rem; top: 2.4rem; width: 13.2rem; height: 6rem; }
@@ -157,14 +158,65 @@
   });
 
   const track = document.querySelector('.track');
+  const originals = [...track.querySelectorAll('.card')];
+  const count = originals.length;
+
+  // 무한 루프: [복제본][원본][복제본] 3세트를 두고, 멈추면 가운데 세트로 순간 이동
+  const makeClones = () => originals.map((card) => {
+    const clone = card.cloneNode(true);
+    clone.classList.remove('is-active');
+    clone.setAttribute('aria-hidden', 'true');
+    return clone;
+  });
+  track.prepend(...makeClones());
+  track.append(...makeClones());
   const cards = [...track.querySelectorAll('.card')];
+
+  const stepSize = () => cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+  const currentIndex = () => Math.round(track.scrollLeft / stepSize());
   const markActive = () => {
-    const step = cards[1].offsetLeft - cards[0].offsetLeft;
-    const active = Math.min(cards.length - 1, Math.round(track.scrollLeft / step));
+    const active = currentIndex();
     cards.forEach((card, i) => card.classList.toggle('is-active', i === active));
   };
-  track.addEventListener('scroll', markActive, { passive: true });
-  addEventListener('resize', markActive);
+  const jumpTo = (index) => {
+    track.classList.add('no-anim');
+    track.scrollLeft = index * stepSize();
+    markActive();
+    void track.offsetWidth;
+    track.classList.remove('no-anim');
+  };
+
+  let touching = false;
+  let settleTimer;
+  const settle = () => {
+    if (touching) return;
+    const index = currentIndex();
+    if (index < count || index >= count * 2) {
+      jumpTo(count + (((index % count) + count) % count));
+    }
+  };
+  const scheduleSettle = () => {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(settle, 140);
+  };
+
+  track.addEventListener('scroll', () => { markActive(); scheduleSettle(); }, { passive: true });
+  track.addEventListener('touchstart', () => { touching = true; }, { passive: true });
+  ['touchend', 'touchcancel'].forEach((type) => track.addEventListener(type, () => {
+    touching = false;
+    scheduleSettle();
+  }, { passive: true }));
+
+  let lastIndex = count;
+  track.addEventListener('scroll', () => { lastIndex = currentIndex(); }, { passive: true });
+  // 모바일 주소창이 접힐 때의 세로 resize는 무시
+  let lastWidth = innerWidth;
+  addEventListener('resize', () => {
+    if (innerWidth === lastWidth) return;
+    lastWidth = innerWidth;
+    jumpTo(lastIndex);
+  });
+  jumpTo(count);
 </script>
 </body>
 </html>
